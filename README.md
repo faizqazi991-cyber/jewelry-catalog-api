@@ -1,119 +1,110 @@
 # Jewelry Catalog API
 
-A backend-focused product catalog REST API built for an internship selection assignment. It demonstrates CRUD operations, search/filtering, PostgreSQL data modeling, admin authentication, validation, error handling, API documentation, testing, and Docker support.
+A backend REST API for a product catalog, built as an internship assignment. It provides product CRUD, search/filtering, pagination, JWT-based admin authentication, PostgreSQL persistence, validation, tests, Swagger/OpenAPI documentation, and Docker support.
 
-## Tech stack
+## 🚀 Live Demo
 
-- Node.js + Express
-- PostgreSQL
-- Prisma ORM
-- JWT + bcryptjs for admin authentication
-- Zod for request validation
-- Swagger/OpenAPI for API documentation
-- Jest + Supertest for automated tests
-- Docker / Docker Compose
+- **Live API:** https://jewelry-catalog-api-xcuz.onrender.com
+- **Swagger UI:** https://jewelry-catalog-api-xcuz.onrender.com/docs
+- **Health Check:** https://jewelry-catalog-api-xcuz.onrender.com/health
 
-## Requirements covered
+> The free Render service may take a short time to wake up after inactivity.
+
+## ✨ Features
+
+- Full product CRUD
+- PostgreSQL + Prisma ORM
+- JWT admin authentication
+- bcrypt password hashing
+- Search by product name/description
+- Category, price-range, and stock filters
+- Pagination and sorting
+- Zod request validation
+- Centralized error handling
+- Swagger/OpenAPI docs
+- Jest + Supertest tests
+- Docker + Docker Compose
+- Helmet security headers and configurable CORS
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 20+ |
+| Framework | Express.js |
+| Database | PostgreSQL |
+| ORM | Prisma |
+| Authentication | JWT |
+| Password hashing | bcryptjs |
+| Validation | Zod |
+| Documentation | Swagger / OpenAPI |
+| Testing | Jest + Supertest |
+| Containerization | Docker + Docker Compose |
+| Deployment | Render |
+
+## 📋 Assignment Requirements
 
 | Requirement | Implementation |
 |---|---|
-| Product CRUD | `POST`, `GET`, `PUT`, `DELETE /api/products` |
+| Product CRUD | POST, GET, PUT, DELETE `/api/products` |
 | Product fields | name, price, category, images, stock, description |
 | Search/filter | search, category, price range, stock status |
-| Basic admin auth | JWT bearer authentication |
+| Admin auth | JWT-protected product mutations |
 | Database | PostgreSQL + Prisma |
-| Edge cases | validation, missing records, bad credentials, empty results, zero stock |
-| Deployment ready | Dockerfile + environment variables |
-| API documentation | Swagger UI at `/docs` |
+| Edge cases | validation, missing records, duplicate records, invalid auth, zero stock, empty results |
+| Deployment | Dockerized API on Render |
+| Documentation | Interactive Swagger/OpenAPI UI |
 
-## Architecture
+## 🔐 Authentication
 
-`routes -> validation middleware -> controllers -> Prisma -> PostgreSQL`
+### Register an admin
 
-Authentication is handled by a JWT middleware before protected product mutations. Controllers stay focused on HTTP behavior while Prisma handles persistence.
+`POST /api/auth/register`
 
-## Run locally
-
-### 1. Install
-
-Use Node.js 20+ and PostgreSQL, or use the included Docker Compose setup.
-
-```bash
-npm install
-cp .env.example .env
-```
-
-### 2. Start PostgreSQL with Docker
-
-```bash
-docker compose up -d db
-```
-
-### 3. Configure `.env`
-
-Keep secrets only in `.env`; never commit them.
-
-```env
-PORT=5000
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/jewelry_catalog?schema=public"
-JWT_SECRET="use-a-long-random-secret-here"
-JWT_EXPIRES_IN="1d"
-ADMIN_REGISTRATION_KEY="your-private-registration-key"
-CORS_ORIGIN="*"
-```
-
-### 4. Create the database schema and seed demo data
-
-```bash
-npx prisma db push
-npm run db:seed
-```
-
-The seed creates a demo admin account using `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` if supplied. Otherwise it uses `admin@example.com` / `AdminPass123!` for local demonstration only.
-
-### 5. Start the API
-
-```bash
-npm run dev
-```
-
-The API runs at `http://localhost:5000`.
-
-## Docker full stack
-
-```bash
-docker compose up --build
-```
-
-This starts PostgreSQL and the API together.
-
-## API usage
-
-### Login
-
-```http
-POST /api/auth/login
-Content-Type: application/json
-
+```json
 {
   "email": "admin@example.com",
-  "password": "AdminPass123!"
+  "password": "your-secure-password",
+  "registrationKey": "your-admin-registration-key"
 }
 ```
 
-Copy the returned JWT and send it as:
+The registration key comes from the private `ADMIN_REGISTRATION_KEY` environment variable and is never committed to the repository.
 
-```http
+### Login
+
+`POST /api/auth/login`
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "your-secure-password"
+}
+```
+
+Use the returned JWT as:
+
+```text
 Authorization: Bearer <token>
 ```
 
-### Create product (admin)
+### Current admin
 
-```http
-POST /api/products
-Authorization: Bearer <token>
-Content-Type: application/json
+`GET /api/auth/me`
 
+## 📦 Product API
+
+| Method | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/products` | No | List/search products |
+| GET | `/api/products/:id` | No | Get one product |
+| POST | `/api/products` | JWT | Create product |
+| PUT | `/api/products/:id` | JWT | Update product |
+| DELETE | `/api/products/:id` | JWT | Delete product |
+
+Example create request:
+
+```json
 {
   "name": "Royal Gold Ring",
   "description": "Minimal gold ring",
@@ -124,7 +115,9 @@ Content-Type: application/json
 }
 ```
 
-### Search/filter examples
+## 🔎 Search, Filters, Pagination & Sorting
+
+The listing endpoint supports combined query parameters:
 
 ```text
 GET /api/products?search=gold
@@ -135,57 +128,45 @@ GET /api/products?search=diamond&category=rings
 GET /api/products?sortBy=price&sortOrder=asc&page=1&limit=10
 ```
 
-`inStock=true` means `stock > 0`; `inStock=false` includes zero-stock products. Zero stock is therefore represented without deleting the product from the catalog.
+`inStock=true` means `stock > 0`; `inStock=false` includes zero-stock products. Zero-stock products remain in the catalog and are returned with `inStock: false`.
 
-## HTTP status conventions
+## 🧪 Edge Cases & Error Handling
 
-- `200` successful read/update/login
-- `201` successful creation
-- `204` successful deletion
-- `400` validation error
-- `401` missing/invalid authentication
-- `403` authenticated user lacks permission or registration key is invalid
-- `404` resource/route not found
-- `409` duplicate/conflicting resource
-- `500` unexpected server error
+The API handles invalid/missing authentication, invalid registration keys, malformed request bodies, negative prices or stock, invalid query parameters, invalid product IDs, duplicate/conflicting resources, missing products, empty search results, zero-stock products, unknown routes, and unexpected server/database errors.
 
-## API documentation
+Common HTTP status codes include `200`, `201`, `204`, `400`, `401`, `403`, `404`, `409`, and `500`.
 
-After starting the server, open `/docs` for interactive Swagger UI.
+## 📖 API Documentation
 
-The OpenAPI source is in `docs/openapi.yaml`.
+Interactive Swagger documentation:
 
-## Tests
+**https://jewelry-catalog-api-xcuz.onrender.com/docs**
 
-```bash
-npm test
+OpenAPI source:
+
+```text
+docs/openapi.yaml
 ```
 
-The included tests cover health checks, validation/routing behavior, and 404 handling. Database-backed integration tests can be added with a dedicated test database when extending the project.
+## 🏗️ Architecture
 
-## Deployment
+```text
+HTTP Request
+    ↓
+Express Routes
+    ↓
+Validation / Authentication Middleware
+    ↓
+Controllers
+    ↓
+Prisma ORM
+    ↓
+PostgreSQL
+```
 
-The application is container-ready. For a cloud deployment, provision a managed PostgreSQL database, set the environment variables from `.env.example`, build the Docker image, and run the container on a platform that supports Docker. Do not commit production credentials.
+Routing, validation, authentication, controllers, and database access are separated to keep the codebase maintainable and testable.
 
-## Design decisions
-
-1. **PostgreSQL** was chosen because product data is structured and benefits from relational constraints and indexes.
-2. **Prisma** keeps database access typed and makes the schema easy to review.
-3. **JWT** keeps the admin API stateless and easy to deploy.
-4. **Validation at the HTTP boundary** prevents invalid prices, negative stock, malformed image URLs, and invalid query parameters from reaching the database layer.
-5. **Pagination and sorting** make the catalog endpoint usable as the product list grows.
-6. **Zero-stock products remain visible** so the catalog can show unavailable products instead of losing them.
-
-## Security notes
-
-- Passwords are hashed with bcrypt.
-- JWT secrets and registration keys come from environment variables.
-- Helmet adds common HTTP security headers.
-- Request bodies are size-limited.
-- `.env` is excluded from Git.
-- Admin mutations require a valid JWT.
-
-## Project structure
+## 📁 Project Structure
 
 ```text
 jewelry-catalog-api/
@@ -193,7 +174,7 @@ jewelry-catalog-api/
 ├── prisma/schema.prisma
 ├── prisma/seed.js
 ├── src/
-│   ├── config/env.js
+│   ├── config/
 │   ├── controllers/
 │   ├── middleware/
 │   ├── routes/
@@ -202,24 +183,145 @@ jewelry-catalog-api/
 │   ├── app.js
 │   ├── db.js
 │   └── server.js
-├── tests/health.test.js
+├── tests/
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile
 ├── docker-compose.yml
 ├── jest.config.js
-└── package.json
+├── package.json
+└── README.md
 ```
 
-## Internship walkthrough checklist
+## 💻 Run Locally
 
-Be ready to explain:
+### Prerequisites
 
-- Why PostgreSQL and Prisma were selected.
-- How the Product schema supports search and filtering.
-- How `inStock` is derived from `stock`.
-- Why product reads are public while mutations are admin-only.
-- How JWT verification works.
-- How invalid input is rejected before database access.
-- How pagination prevents returning an unbounded product list.
-- How the API can be deployed without hard-coded secrets.
+- Node.js 20+
+- PostgreSQL, or Docker Desktop
+
+### Install and configure
+
+```bash
+npm install
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Configure the private values in `.env`:
+
+```env
+PORT=5000
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/jewelry_catalog?schema=public"
+JWT_SECRET="replace-with-a-long-random-secret"
+JWT_EXPIRES_IN="1d"
+ADMIN_REGISTRATION_KEY="replace-with-a-private-registration-key"
+CORS_ORIGIN="*"
+```
+
+Never commit the real `.env` file or production secrets.
+
+### Database and seed
+
+```bash
+npx prisma db push
+npm run db:seed
+```
+
+The seed script creates sample jewelry products and a demo admin for local development. For a real deployment, use your own credentials through environment variables.
+
+### Start the API
+
+```bash
+npm run dev
+```
+
+The API runs at `http://localhost:5000`.
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+The container initializes the Prisma schema, seeds the database, and starts the API.
+
+## 🧪 Testing
+
+```bash
+npm test
+```
+
+The included Jest/Supertest tests cover core application behavior such as health checks, routing/validation behavior, and error handling. A dedicated test database can be added for deeper database-backed integration tests.
+
+## 🗄️ Database Design
+
+### User
+
+- id
+- email
+- passwordHash
+- role
+- timestamps
+
+### Product
+
+- id
+- name
+- description
+- price
+- category
+- images
+- stock
+- timestamps
+
+Product prices use Prisma's decimal database type for reliable monetary storage, while stock is an integer.
+
+## 🔒 Security Notes
+
+- Passwords are stored as bcrypt hashes.
+- JWT secrets and registration keys come from environment variables.
+- `.env` is excluded from Git.
+- Product mutations require a valid JWT.
+- Request payloads are validated before database access.
+- Helmet adds common HTTP security headers.
+- Request body size is limited.
+- CORS is configurable.
+
+## 🚢 Deployment
+
+The API is containerized with Docker and deployed on Render with a managed PostgreSQL database. Deployment uses environment variables for database access and authentication secrets. The Docker startup command initializes Prisma, seeds the database, and starts Express.
+
+### Deployment checklist
+
+- [x] PostgreSQL configured
+- [x] Environment variables configured
+- [x] Docker deployment completed
+- [x] Database schema initialized
+- [x] Seed data loaded
+- [x] Public API accessible
+- [x] Search/filter verified
+- [x] Pagination verified
+- [x] Swagger available
+
+## 🎯 Design Decisions
+
+1. **PostgreSQL + Prisma** — structured catalog data fits a relational database and Prisma keeps database access maintainable.
+2. **JWT authentication** — provides stateless authentication for protected admin operations.
+3. **Zod validation** — rejects invalid data at the HTTP boundary before database access.
+4. **Pagination and sorting** — avoids returning an unbounded product list as the catalog grows.
+5. **Zero-stock products remain visible** — availability is represented by stock instead of deleting catalog records.
+6. **Layered architecture** — routes, middleware, controllers, validation, and database access are separated for easier maintenance and testing.
+
+## 📌 Internship Submission
+
+This repository demonstrates REST API design, CRUD operations, PostgreSQL database design, authentication/authorization, search/filtering, pagination/sorting, validation, edge-case handling, automated testing, API documentation, and Docker-based deployment.
+
+- **Repository:** https://github.com/faizqazi991-cyber/jewelry-catalog-api
+- **Live API:** https://jewelry-catalog-api-xcuz.onrender.com
+- **Swagger:** https://jewelry-catalog-api-xcuz.onrender.com/docs
