@@ -17,6 +17,13 @@ app.use(cors({ origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('combined'));
 
+app.get('/', (req, res) => res.json({
+  name: 'Jewelry Catalog API',
+  status: 'running',
+  version: '1.0.0',
+  documentation: '/docs',
+  health: '/health'
+}));
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'jewelry-catalog-api' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
