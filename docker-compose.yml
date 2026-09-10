@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jewelry_catalog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jewelry_catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/jewelry_catalog?schema=public
+      JWT_SECRET: change-this-in-production
+      JWT_EXPIRES_IN: 1d
+      ADMIN_REGISTRATION_KEY: local-admin-key
+      CORS_ORIGIN: '*'
+    ports:
+      - "5000:5000"
+    command: sh -c "npx prisma db push && npx prisma db seed && node src/server.js"
+
+volumes:
+  postgres_data:
