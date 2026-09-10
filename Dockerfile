@@ -7,4 +7,4 @@ RUN npx prisma generate
 COPY src ./src
 COPY docs ./docs
 EXPOSE 5000
-CMD ["node", "src/server.js"]
+CMD ["sh", "-c", "npx prisma db push && npx prisma db seed && node src/server.js"]
