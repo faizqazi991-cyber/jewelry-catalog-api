@@ -4,6 +4,7 @@ info:
   version: 1.0.0
   description: REST API for managing and searching a jewelry product catalog.
 servers:
+  - url: https://jewelry-catalog-api-xcuz.onrender.com
   - url: http://localhost:5000
 paths:
   /health:
